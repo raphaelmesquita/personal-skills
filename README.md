@@ -26,10 +26,10 @@ List the skills detected in this repository:
 npx -y skills add . --list --full-depth
 ```
 
-Install all skills from the repository root:
+Install skills from the repository root:
 
 ```powershell
-npx -y skills add . --skill "*" -y --full-depth
+npx -y skills add .
 ```
 
 To install all skills for all supported agents, use:
