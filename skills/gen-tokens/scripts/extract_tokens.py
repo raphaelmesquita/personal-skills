@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 from math import sqrt
 from pathlib import Path
+import re
+import unicodedata
+import zipfile
 
 try:
     from PIL import Image, ImageDraw
@@ -19,6 +22,13 @@ MASK_SCALE = 4
 DEFAULT_INPUT_DIR = Path("input")
 DEFAULT_OUTPUT_DIR = Path("output")
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
+
+
+def slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_value).strip("_").lower()
+    return slug or "roll20_token"
 
 
 def validate_source(image: Image.Image, source: Path) -> int:
@@ -76,11 +86,12 @@ def token_sources(input_dir: Path) -> list[Path]:
     )
 
 
-def extract_tokens(source: Path, output_dir: Path) -> list[Path]:
+def extract_tokens(source: Path, output_dir: Path, slug: str | None = None) -> list[Path]:
     with Image.open(source) as image:
         cell_size = validate_source(image, source)
         mask = make_hex_mask(cell_size)
         output_dir.mkdir(parents=True, exist_ok=True)
+        file_slug = slugify(slug or source.stem)
 
         written: list[Path] = []
         token_number = 1
@@ -94,12 +105,20 @@ def extract_tokens(source: Path, output_dir: Path) -> list[Path]:
                 token = image.crop(box)
                 token = apply_mask(token, mask)
 
-                output_path = output_dir / f"{source.stem}_token_{token_number}.png"
+                output_path = output_dir / f"{file_slug}_{token_number:02d}.png"
                 token.save(output_path)
                 written.append(output_path)
                 token_number += 1
 
         return written
+
+
+def write_zip(token_paths: list[Path], output_dir: Path, slug: str) -> Path:
+    zip_path = output_dir / f"{slugify(slug)}_tokens.zip"
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for token_path in token_paths:
+            archive.write(token_path, arcname=token_path.name)
+    return zip_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -125,6 +144,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
         help=f"Directory for extracted tokens. Defaults to {DEFAULT_OUTPUT_DIR}.",
+    )
+    parser.add_argument(
+        "--slug",
+        help=(
+            "Base name for output files, usually derived from the requested character "
+            "type, faction, or concept."
+        ),
+    )
+    parser.add_argument(
+        "--zip",
+        action="store_true",
+        help="Also create a ZIP file containing the extracted PNG tokens.",
     )
     return parser.parse_args()
 
@@ -152,7 +183,13 @@ def main() -> None:
 
     for source in sources:
         print(f"Processing {source}...")
-        written.extend(extract_tokens(source, args.output_dir))
+        source_slug = args.slug or source.stem
+        source_written = extract_tokens(source, args.output_dir, source_slug)
+        written.extend(source_written)
+
+        if args.zip:
+            zip_path = write_zip(source_written, args.output_dir, source_slug)
+            print(zip_path)
 
     for path in written:
         print(path)
