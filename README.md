@@ -20,13 +20,19 @@ git clone https://github.com/raphaelmesquita/personal-skills.git
 cd personal-skills
 ```
 
+Install all skills globally under `~/.agents` for Codex:
+
+```powershell
+npx -y skills add . --global --agent codex --skill "*" -y --full-depth
+```
+
 List the skills detected in this repository:
 
 ```powershell
 npx -y skills add . --list --full-depth
 ```
 
-Install skills from the repository root:
+Install skills from the repository root for the current project:
 
 ```powershell
 npx -y skills add .
@@ -37,6 +43,8 @@ To install all skills for all supported agents, use:
 ```powershell
 npx -y skills add . --all --full-depth
 ```
+
+Note: `--all` targets every agent known to the CLI. Some agents may not support a given installation scope, such as PromptScript with global installs. For a clean global install under `~/.agents`, prefer the first command above or pass specific agent ids with `--agent`.
 
 ## Verify Installation
 
