@@ -37,15 +37,23 @@ If Pillow is missing, install this skill's dependency:
 python -m pip install -r <gen-tokens-skill-dir>\requirements.txt
 ```
 
+## Codex Native Image Generation Fallback
+When the native Codex image generation tool saves the generated grid outside the workspace, copy the generated PNG into `input/<request-slug>.png` before extraction. In Codex desktop this image may be under:
+
+```text
+C:\Users\<user>\.codex\generated_images\<generation-id>\*.png
+```
+
+Leave the original generated image in place and copy it into the workspace.
+
 ## Workflow
 1. Confirm or infer the faction, theme, location, and campaign tone.
 2. If the user provides an image, infer whether it is a single-character reference, a style/type reference, or a related-character request.
 3. Build a concise image prompt with fixed 3x3 grid requirements.
 4. Generate exactly one square image with nine character portraits.
 5. Save the grid to `input/<request-slug>.png` in the current workspace.
-6. Visually inspect the generated grid before extraction when possible.
-7. Run the bundled extraction command with `--slug <request-slug> --zip`.
-8. Report the generated image path, output folder, ZIP path, and any visible token issues.
+6. Run the bundled extraction command with `--slug <request-slug> --zip`.
+7. Report the generated image path, output folder, and ZIP path.
 
 ## Hard Format Rule
 Every generated image must be a square 1:1 clean 3x3 grid with exactly nine equal cells. This rule applies even when the user provides a reference image, asks for several poses, siblings, gang members, relatives, rivals, clones, upgrades, alternate costumes, variants, or characters in the same style. Never generate a horizontal pose sheet, animation sheet, full-body lineup, single wide scene, or expanded landscape canvas for this skill.
@@ -74,6 +82,16 @@ Use lowercase ASCII slugs derived from the user's requested character type, fact
 
 If the request is unclear, derive the slug from the source filename. If both are unclear, use `roll20_token`.
 
+The extractor writes working files to `output/` by default. In Codex desktop projectless threads, user-facing deliverables should be copied to the thread's `outputs/` folder after extraction.
+
+```powershell
+Copy-Item -LiteralPath "input\<request-slug>.png" -Destination "outputs\<request-slug>_grid.png" -Force
+Copy-Item -LiteralPath "output\<slug>_tokens.zip" -Destination "outputs\<slug>_tokens.zip" -Force
+Copy-Item -Path "output\<slug>_*.png" -Destination "outputs" -Force
+```
+
+Use `-LiteralPath` for exact paths and `-Path` for the token PNG wildcard copy.
+
 ## Image Requirements
 Always ask image generation for:
 - one square 1:1 image
@@ -97,9 +115,6 @@ If the user does not provide nine characters, invent nine. Vary body type, age, 
 
 ## Prompt Template
 Use the full template in [PROMPT_REFERENCE.md](PROMPT_REFERENCE.md) when calling `imagegen`.
-
-## Quality Check
-Before finishing, check for wrong aspect ratio, missing cells, more or fewer than nine portraits, horizontal pose-sheet layout, full-body lineup, single wide scene, duplicate characters, faces too close to the edge, tiny or off-center faces, important accessories outside the hex-safe center, repeated adjacent background colors, text artifacts, inconsistent style, and unreadable token faces. Regenerate or warn clearly when an issue cannot be fixed.
 
 ## Example Requests
 - "Gangue de Metro City estilo Final Fight, punks dos anos 1990."
