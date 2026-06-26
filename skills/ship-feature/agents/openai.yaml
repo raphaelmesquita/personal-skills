@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ship Feature"
+  short_description: "Implement, QA, review, commit, push."
+  default_prompt: "Use $ship-feature to implement this scoped feature from the current request or PRD, run QA and review subagents, address findings, then commit and push."
