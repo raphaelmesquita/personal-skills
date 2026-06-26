@@ -21,11 +21,13 @@ Default mode is commit and push. Merge only when the user explicitly asks for me
 
 ## Implement
 
-1. Make the smallest change that satisfies the PRD/request.
-2. Keep rule/business validation in the authoritative layer for the repo.
-3. Preserve public contracts unless the source of truth explicitly changes them.
-4. Update docs and memory when behavior, architecture, workflow, or durable knowledge changes.
-5. Run the relevant local verification before asking any subagent to review.
+Delegate implementation to `$delegate-antigravity` instead of editing directly.
+
+1. Create a precise implementation handoff for `$delegate-antigravity` with the source of truth, workspace path, branch/worktree state, constraints, expected files or areas, and required verification.
+2. Instruct `$delegate-antigravity` to use `-AllowAgentTools` for expected edits, terminal commands, internet access, or tool use when the workspace is source controlled.
+3. Require Antigravity to make the smallest change that satisfies the PRD/request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
+4. Read the Antigravity output handoff and inspect the resulting diff before continuing. If the handoff is missing, blocked, or inconsistent with the diff, resolve that before entering the verification gate.
+5. Treat Antigravity as the implementer only; Codex remains responsible for final verification, QA/review subagents, tracker updates, commit, push, and final report.
 
 ## Verification Gate
 
