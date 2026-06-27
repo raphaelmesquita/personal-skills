@@ -29,6 +29,7 @@ except Exception:
 API_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits"
 AUTH_PATH = Path.home() / ".codex" / "auth.json"
 TIMEZONE = "America/Sao_Paulo"
+DAYS_THRESHOLD = 10
 
 
 def load_env():
@@ -121,15 +122,15 @@ def main():
         expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
         time_left = expires_at - now
 
-        # We only care about resets expiring in less than 10 days, but not already expired
-        if 0 <= time_left.total_seconds() < 10 * 24 * 60 * 60:
+        # We only care about resets expiring in less than DAYS_THRESHOLD days, but not already expired
+        if 0 <= time_left.total_seconds() < DAYS_THRESHOLD * 24 * 60 * 60:
             local_tz = ZoneInfo(TIMEZONE)
             local_expiry = expires_at.astimezone(local_tz)
             local_expiry_str = local_expiry.strftime("%d/%m/%Y às %H:%M:%S")
             expiring_resets.append((local_expiry_str, fmt_time_left(time_left)))
 
     if not expiring_resets:
-        print("Nenhum reset expirando em menos de 10 dias.")
+        print(f"Nenhum reset expirando em menos de {DAYS_THRESHOLD} dias.")
         return
 
     # Build and send email
@@ -139,7 +140,7 @@ def main():
     body_lines = [
         "Olá,",
         "",
-        "Este é um alerta automático informando que há crédito(s) de uso do ChatGPT prestes a expirar nos próximos 10 dias:",
+        f"Este é um alerta automático informando que há crédito(s) de uso do ChatGPT prestes a expirar nos próximos {DAYS_THRESHOLD} dias:",
         ""
     ]
     for expiry_date, time_left_str in expiring_resets:
