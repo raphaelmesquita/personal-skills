@@ -17,6 +17,10 @@ try:
 except Exception:
     class ZoneInfoFallback(tzinfo):
         def __init__(self, key):
+            if key != "America/Sao_Paulo":
+                raise ValueError(
+                    "Timezone data is unavailable. Install tzdata or use America/Sao_Paulo."
+                )
             self.key = key
         def utcoffset(self, dt):
             return timedelta(hours=-3)
@@ -29,9 +33,9 @@ except Exception:
 API_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits"
 AUTH_PATH = Path.home() / ".codex" / "auth.json"
 try:
-    from see_resets import TIMEZONE
+    from see_resets import TIMEZONE as DEFAULT_TIMEZONE
 except ImportError:
-    TIMEZONE = "America/Sao_Paulo"
+    DEFAULT_TIMEZONE = "America/Sao_Paulo"
 DAYS_THRESHOLD = 10
 
 
@@ -71,6 +75,36 @@ def fmt_time_left(time_left):
         parts.append(f"{minutes} minuto{'s' if minutes > 1 else ''}")
 
     return ", ".join(parts) if parts else "menos de um minuto"
+
+
+def configured_timezone_name():
+    return os.environ.get("TIMEZONE", DEFAULT_TIMEZONE)
+
+
+def parse_api_datetime(timestamp):
+    parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def fmt_utc_offset(dt):
+    offset = dt.utcoffset()
+    if offset is None:
+        return "UTC"
+
+    total_minutes = int(offset.total_seconds() // 60)
+    sign = "+" if total_minutes >= 0 else "-"
+    total_minutes = abs(total_minutes)
+    hours, minutes = divmod(total_minutes, 60)
+    return f"UTC{sign}{hours:02d}:{minutes:02d}"
+
+
+def fmt_local_expiry(timestamp, timezone_name=None):
+    timezone_name = timezone_name or configured_timezone_name()
+    local_tz = ZoneInfo(timezone_name)
+    local_expiry = parse_api_datetime(timestamp).astimezone(local_tz)
+    return local_expiry.strftime("%d/%m/%Y às %H:%M:%S")
 
 
 def main():
@@ -115,40 +149,59 @@ def main():
 
     credits = payload.get("credits") or []
     now = datetime.now(timezone.utc)
-    expiring_resets = []
-
+    
+    resets_data = []
     for c in credits:
         expires_at_str = c.get("expires_at")
         if not expires_at_str:
             continue
         
-        expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
+        expires_at = parse_api_datetime(expires_at_str)
         time_left = expires_at - now
-
-        # We only care about resets expiring in less than DAYS_THRESHOLD days, but not already expired
-        if 0 <= time_left.total_seconds() < DAYS_THRESHOLD * 24 * 60 * 60:
-            local_tz = ZoneInfo(TIMEZONE)
-            local_expiry = expires_at.astimezone(local_tz)
-            local_expiry_str = local_expiry.strftime("%d/%m/%Y às %H:%M:%S")
-            expiring_resets.append((local_expiry_str, fmt_time_left(time_left)))
-
-    if not expiring_resets:
+        
+        # Only show active resets (not already expired)
+        if time_left.total_seconds() >= 0:
+            resets_data.append((expires_at, expires_at_str, time_left))
+            
+    # Sort resets by expiration date
+    resets_data.sort(key=lambda x: x[0])
+    
+    all_resets = []
+    has_expiring = False
+    for expires_at, expires_at_str, time_left in resets_data:
+        local_expiry_str = fmt_local_expiry(expires_at_str)
+        time_left_str = fmt_time_left(time_left)
+        is_expiring = time_left.total_seconds() < DAYS_THRESHOLD * 24 * 60 * 60
+        if is_expiring:
+            has_expiring = True
+            
+        all_resets.append({
+            "expiry_date": local_expiry_str,
+            "time_left_str": time_left_str,
+            "is_expiring": is_expiring
+        })
+        
+    if not has_expiring:
         print(f"Nenhum reset expirando em menos de {DAYS_THRESHOLD} dias.")
         return
 
     # Build and send email
-    print(f"Encontrado(s) {len(expiring_resets)} reset(s) prestes a expirar. Enviando e-mail...")
+    print(f"Encontrado(s) {sum(1 for r in all_resets if r['is_expiring'])} reset(s) prestes a expirar. Enviando e-mail...")
     
     subject = "[ChatGPT Reset] Alerta de Expiração de Limite de Uso"
+    
+    # Plain text version
     body_lines = [
-        "Olá,",
-        "",
-        f"Este é um alerta automático informando que há crédito(s) de uso do ChatGPT prestes a expirar nos próximos {DAYS_THRESHOLD} dias:",
+        "Este é um alerta automático informando sobre os seus créditos de uso do ChatGPT.",
+        "Abaixo estão todos os seus resets ativos:",
         ""
     ]
-    for expiry_date, time_left_str in expiring_resets:
-        body_lines.append(f"- Expira em: {expiry_date} (Tempo restante: {time_left_str})")
-    
+    for r in all_resets:
+        if r["is_expiring"]:
+            body_lines.append(f"- **Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']}) [PRESTES A EXPIRAR]**")
+        else:
+            body_lines.append(f"- Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']})")
+            
     body_lines.extend([
         "",
         "Por favor, planeje o uso da sua conta adequadamente.",
@@ -156,15 +209,46 @@ def main():
         "Atenciosamente,",
         "Script de Alerta de Resets"
     ])
-    
     body = "\n".join(body_lines)
 
+    # HTML version
+    html_lines = [
+        "<html>",
+        "<body>",
+        "<p>Olá,</p>",
+        "<p>Este é um alerta automático informando sobre os seus créditos de uso do ChatGPT.</p>",
+        "<p>Abaixo estão todos os seus resets ativos:</p>",
+        "<ul>"
+    ]
+    for r in all_resets:
+        if r["is_expiring"]:
+            html_lines.append(
+                f"  <li><strong><span style=\"color: red;\">Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']}) [PRESTES A EXPIRAR]</span></strong></li>"
+            )
+        else:
+            html_lines.append(
+                f"  <li>Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']})</li>"
+            )
+            
+    html_lines.extend([
+        "</ul>",
+        "<p>Por favor, planeje o uso da sua conta adequadamente.</p>",
+        "<p>Atenciosamente,<br>Script de Alerta de Resets</p>",
+        "</body>",
+        "</html>"
+    ])
+    html_body = "\n".join(html_lines)
+
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart('alternative')
         msg['From'] = os.environ['EMAIL_FROM']
         msg['To'] = os.environ['EMAIL_TO']
         msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        
+        part1 = MIMEText(body, 'plain', 'utf-8')
+        part2 = MIMEText(html_body, 'html', 'utf-8')
+        msg.attach(part1)
+        msg.attach(part2)
 
         host = os.environ['SMTP_HOST']
         port = int(os.environ['SMTP_PORT'])
