@@ -37,3 +37,4 @@ credits = payload.get("credits") or []
 print(f"1. resets available: {payload.get('available_count', 0)}")
 print("2. granted: " + ("; ".join(fmt(c.get("granted_at")) for c in credits) or "none"))
 print("3. expires: " + ("; ".join(fmt(c.get("expires_at")) for c in credits) or "none"))
+print(json.dumps(payload, indent=2))
