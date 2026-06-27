@@ -28,8 +28,11 @@ except Exception:
 
 API_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits"
 AUTH_PATH = Path.home() / ".codex" / "auth.json"
-TIMEZONE = "America/Sao_Paulo"
-DAYS_THRESHOLD = 30
+try:
+    from see_resets import TIMEZONE
+except ImportError:
+    TIMEZONE = "America/Sao_Paulo"
+DAYS_THRESHOLD = 10
 
 
 def load_env():
