@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic To Issues"
+  short_description: "Agent-ready issue slicing"
+  default_prompt: "Use $to-issues-agentic to turn this PRD into agent-ready implementation issues."

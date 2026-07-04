@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goal Handoff"
+  short_description: "Goal-ready implementation handoffs"
+  default_prompt: "Use $to-goal-handoff to create a /goal handoff for this PRD and its issue tracker."
