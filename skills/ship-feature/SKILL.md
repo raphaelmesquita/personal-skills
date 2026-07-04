@@ -1,6 +1,6 @@
 ---
 name: ship-feature
-description: "End-to-end feature delivery workflow for Codex: implement a scoped feature, run verification, use independent QA and review subagents, address findings, commit, push, and optionally merge. Use when the user says /ship-feature, asks to ship a feature, or asks for a reproducible implement-QA-review-commit-push-merge loop."
+description: "Ship a scoped feature end-to-end: delegate implementation, run Codex-owned QA, obtain independent review, address findings, commit/push, and optionally merge. Use for /ship-feature or requests to ship a feature from a PRD, issue, or request."
 ---
 
 # Ship Feature
@@ -19,15 +19,20 @@ Default mode is commit and push. Merge only when the user explicitly asks for me
 4. If unrelated dirty files touch the target area, work with them carefully; ask only when they make the task unsafe or impossible.
 5. Create or switch to an appropriate feature branch when requested or when repo practice requires it.
 
+## Delegation Context
+
+Use task-local context for all delegated workers: objective, source of truth, workspace path, current state, constraints, required work, verification, and output contract. Exclude the `ship-feature` orchestration process, phase names, planned gates, prior conclusions, expected findings, and downstream validators.
+
 ## Implement
 
 Delegate implementation to `$delegate-antigravity` instead of editing directly.
 
 1. Create a precise implementation handoff for `$delegate-antigravity` with the source of truth, workspace path, branch/worktree state, constraints, expected files or areas, and required verification.
-2. Instruct `$delegate-antigravity` to use `-AllowAgentTools` for expected edits, terminal commands, internet access, or tool use when the workspace is source controlled.
-3. Require Antigravity to make the smallest change that satisfies the PRD/request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
-4. Read the Antigravity output handoff and inspect the resulting diff before continuing. If the handoff is missing, blocked, or inconsistent with the diff, resolve that before entering the verification gate.
-5. Treat Antigravity as the implementer only; Codex remains responsible for final verification, QA/review subagents, tracker updates, commit, push, and final report.
+2. Tell `$delegate-antigravity` the implementation requires edits and may need terminal, internet, or tool use in the source-controlled workspace.
+3. Tell `$delegate-antigravity` to use model `Gemini 3.5 Flash (Medium)` for implementation unless the user requests another model. Because the implementer is lower-capability than the orchestrator, make the handoff unusually explicit: include concrete acceptance criteria, relevant files or search targets, invariants, edge cases, examples, commands to run, and known non-goals.
+4. Require Antigravity to make the smallest change that satisfies the PRD/request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
+5. Read the Antigravity output handoff and inspect the resulting diff before continuing. If the handoff is missing, blocked, or inconsistent with the diff, resolve that before entering the verification gate.
+6. Treat Antigravity as the implementer only; Codex remains responsible for final verification, QA, corrections, review delegation, tracker updates, commit, push, and final report.
 
 ## Verification Gate
 
@@ -42,21 +47,28 @@ Common examples:
 
 Do not continue to commit while required local verification is failing.
 
-## QA Subagent
+## Orchestrator QA
 
-After implementation and first verification, run an independent QA subagent when subagent tooling is available.
+After implementation and first verification, Codex must personally QA the behavior against the source of truth and user-visible acceptance criteria. Do not use a QA subagent for this gate.
 
-Ask the QA subagent to validate behavior against the PRD/request and user-visible acceptance criteria. Give it the PRD/request path, relevant local URL or commands, and the current diff context. Do not tell it your expected result beyond the acceptance criteria.
+Build a short acceptance checklist from the PRD/request, then exercise the changed behavior directly through the most relevant surface: tests, CLI commands, API calls, browser flows, rendered artifacts, or file inspection. Include negative or edge cases when they are part of the requested behavior or likely regression surface.
 
-Address valid QA findings. Record false positives or out-of-scope findings for the final report. Rerun affected verification after fixes.
+Address valid QA findings yourself. Keep fixes scoped, preserve unrelated worktree changes, and rerun affected verification after fixes. Record any out-of-scope findings for the final report instead of expanding the slice silently.
 
-## Review Subagent
+## Antigravity Review
 
-After QA is clean, run a separate review subagent when subagent tooling is available.
+After Codex QA is clean, obtain independent review before commit/push.
 
-Ask the review subagent for code-review findings on the final diff, prioritizing bugs, regressions, missing tests, boundary violations, and unsafe assumptions. Keep this separate from QA so behavior testing and code review are independent passes.
+1. Ask `$delegate-antigravity` for a read-only code review with model `Claude Opus 4.6 (Thinking)`. Tell `$delegate-antigravity` the review must not modify the workspace; any active commands must be inspection-only.
+2. Use task-local context: source of truth, repo path, final diff context or commands to inspect the diff, relevant verification results, and output contract.
+3. Ask for code-review findings prioritizing bugs, regressions, missing tests, boundary violations, data loss, security or privacy issues, and unsafe assumptions.
+4. Accept the review only when the handoff is non-empty and clearly reports `clean`, `findings`, or `blocked`.
+5. If the Opus run fails because of quota, model availability, timeout, empty output, malformed handoff, or another runtime error, do not retry Opus. If the transcript contains usable review findings despite a bad handoff, use the transcript as review evidence and note the malformed handoff.
+6. When Opus produces no usable review evidence, run one fallback read-only Antigravity review with model `Gemini 3.1 Pro (High)` and a stricter checklist-style review prompt.
+7. If fallback review is also empty, invalid, or blocked, run one read-only review subagent with `GPT 5.4 (High)` using task-local context, and record that independent Antigravity review was unavailable.
+8. For low- or normal-risk changes, Codex may continue after passing verification, orchestrator QA, and independent review. For high-risk changes, skip commit/push if no independent review succeeded unless the user explicitly accepts that risk.
 
-Address valid review findings. Record false positives or out-of-scope findings for the final report. Rerun affected verification after fixes.
+Address valid review findings yourself. Record false positives or out-of-scope findings for the final report.
 
 ## Source Tracker Update
 
@@ -78,8 +90,8 @@ Report:
 
 - what changed;
 - verification run and result;
-- QA subagent result;
-- review subagent result;
+- orchestrator QA result;
+- independent review result;
 - commit hash and pushed branch;
 - PR or merge status when applicable;
 - any residual risk or follow-up.
