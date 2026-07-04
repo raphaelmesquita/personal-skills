@@ -11,6 +11,14 @@ Use this skill for one scoped feature or PRD-backed change. Keep the slice narro
 
 Default mode is commit and push. Merge only when the user explicitly asks for merge mode, for example `/ship-feature --merge`.
 
+## Non-Negotiable Fallbacks
+
+Do not skip delegation fallback gates.
+
+- If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, stop before implementing locally. Run exactly one implementation fallback subagent with model `GPT 5.4 (Medium)`, task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
+- Implement locally only after both `$delegate-antigravity` and the implementation fallback subagent fail or are unavailable, unless the user explicitly forbids subagents.
+- If Opus review and the Gemini Antigravity review fallback both fail to produce usable review evidence, run exactly one read-only review subagent with model `GPT 5.5 (High)` before treating independent review as unavailable.
+
 ## Preflight
 
 1. Identify the source of truth: current user request, PRD, issue, or design doc.
@@ -30,7 +38,7 @@ Delegate implementation to `$delegate-antigravity` instead of editing directly.
 1. Create a precise implementation handoff for `$delegate-antigravity` with the source of truth, workspace path, branch/worktree state, constraints, expected files or areas, and required verification.
 2. Tell `$delegate-antigravity` the implementation requires edits and may need terminal, internet, or tool use in the source-controlled workspace.
 3. Tell `$delegate-antigravity` to use model `Gemini 3.5 Flash (Medium)` for implementation unless the user requests another model. Because the implementer is lower-capability than the orchestrator, make the handoff unusually explicit: include concrete acceptance criteria, relevant files or search targets, invariants, edge cases, examples, commands to run, and known non-goals.
-4. If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, malformed handoff, or another runtime error, do not retry Antigravity indefinitely. Run one final implementation fallback subagent with model `GPT 5.4 (Medium)` using task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
+4. If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, stop. Do not implement locally yet. Do not retry Antigravity indefinitely. Run one final implementation fallback subagent with model `GPT 5.4 (Medium)` using task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
 5. Require the implementer to make the smallest change that satisfies the PRD/request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
 6. Read the implementer output handoff and inspect the resulting diff before continuing. If the handoff is missing, blocked, or inconsistent with the diff, resolve that before entering the verification gate.
 7. Treat the delegated implementer as the implementer only; Codex remains responsible for final verification, QA, corrections, review delegation, tracker updates, commit, push, and final report.
