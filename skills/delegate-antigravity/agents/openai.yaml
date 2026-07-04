@@ -1,4 +1,4 @@
 interface:
   display_name: "Delegate Antigravity"
-  short_description: "Delegate work to Antigravity CLI"
-  default_prompt: "Use $delegate-antigravity to hand this task to Antigravity CLI and return the resulting handoff."
+  short_description: "Delegate via Antigravity handoffs."
+  default_prompt: "Use $delegate-antigravity to delegate this task to Antigravity CLI with the needed model, permissions, and handoff contract."

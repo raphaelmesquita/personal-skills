@@ -100,7 +100,7 @@ $workspacePath
 ## Current State
 Codex is delegating this task to Antigravity CLI through a temp-file handoff.
 
-    ## Constraints
+## Constraints
 - Keep all handoff files in this temp run directory: $runDir
 - Do not create handoff files in the workspace unless the task itself explicitly requires it.
 - Preserve unrelated user changes.
@@ -113,9 +113,10 @@ Codex is delegating this task to Antigravity CLI through a temp-file handoff.
 
 ## Output Contract
 Write $handoffOut with:
+- Status: success or blocked
 - Objective
-- What changed
-- Files touched
+- What changed or what was inspected
+- Files touched or inspected
 - Verification run and results
 - Remaining risks
 - Exact next steps
@@ -136,7 +137,7 @@ $workspacePath
 When finished, write this output handoff:
 $handoffOut
 
-The output handoff must include objective, changes, files touched, verification, risks, and exact next steps.
+The output handoff must include status, objective, changes or inspection results, files touched or inspected, verification, risks, and exact next steps.
 
 Print only:
 STATUS: success|blocked
