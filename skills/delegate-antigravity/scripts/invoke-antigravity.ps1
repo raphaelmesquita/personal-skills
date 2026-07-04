@@ -8,7 +8,7 @@ param(
 
     [string]$Model = "Gemini 3.5 Flash (Medium)",
 
-    [string]$PrintTimeout = "45m",
+    [string]$PrintTimeout = "1h",
 
     [string[]]$ExtraDir = @(),
 
@@ -24,6 +24,29 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+function Convert-PrintTimeoutToTimeSpan {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    if ($Value -match '^(?<amount>\d+)(?<unit>[mh])$') {
+        $amount = [int]$matches['amount']
+        $unit = $matches['unit']
+        switch ($unit) {
+            'm' { return [TimeSpan]::FromMinutes($amount) }
+            'h' { return [TimeSpan]::FromHours($amount) }
+        }
+    }
+
+    throw "Unsupported -PrintTimeout format '$Value'. Use whole minutes or hours such as 60m or 1h."
+}
+
+$resolvedPrintTimeout = Convert-PrintTimeoutToTimeSpan -Value $PrintTimeout
+if ($resolvedPrintTimeout -lt [TimeSpan]::FromHours(1)) {
+    throw "Refusing to run with -PrintTimeout '$PrintTimeout'. Minimum supported value is 1h."
+}
 
 if (-not (Get-Command agy -ErrorAction SilentlyContinue)) {
     throw "agy was not found on PATH. Run agy install or invoke the CLI by absolute path."
