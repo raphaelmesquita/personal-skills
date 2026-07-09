@@ -4,6 +4,8 @@ import urllib.request
 import os
 import sys
 import smtplib
+import html
+import urllib.parse
 from datetime import datetime, timezone, tzinfo, timedelta
 from pathlib import Path
 from email.mime.text import MIMEText
@@ -107,11 +109,155 @@ def fmt_local_expiry(timestamp, timezone_name=None):
     return local_expiry.strftime("%d/%m/%Y às %H:%M:%S")
 
 
+def configured_notify_channel():
+    return os.environ.get("NOTIFY_CHANNEL", "email").strip().lower()
+
+
+def required_config_vars(channel):
+    if channel == "email":
+        return ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_FROM', 'EMAIL_TO']
+    if channel == "telegram":
+        return ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID']
+    print(f"Erro: NOTIFY_CHANNEL inválido: {channel}. Use 'email' ou 'telegram'.", file=sys.stderr)
+    sys.exit(1)
+
+
+def build_notification(all_resets):
+    subject = "[ChatGPT Reset] Alerta de Expiração de Limite de Uso"
+
+    body_lines = [
+        "Este é um alerta automático informando sobre os seus créditos de uso do ChatGPT.",
+        "Abaixo estão todos os seus resets ativos:",
+        ""
+    ]
+    for r in all_resets:
+        if r["is_expiring"]:
+            body_lines.append(f"- Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']}) [PRESTES A EXPIRAR]")
+        else:
+            body_lines.append(f"- Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']})")
+
+    body_lines.extend([
+        "",
+        "Por favor, planeje o uso da sua conta adequadamente.",
+        "",
+        "Atenciosamente,",
+        "Script de Alerta de Resets"
+    ])
+    body = "\n".join(body_lines)
+
+    html_lines = [
+        "<html>",
+        "<body>",
+        "<p>Olá,</p>",
+        "<p>Este é um alerta automático informando sobre os seus créditos de uso do ChatGPT.</p>",
+        "<p>Abaixo estão todos os seus resets ativos:</p>",
+        "<ul>"
+    ]
+    for r in all_resets:
+        if r["is_expiring"]:
+            html_lines.append(
+                f"  <li><strong><span style=\"color: red;\">Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']}) [PRESTES A EXPIRAR]</span></strong></li>"
+            )
+        else:
+            html_lines.append(
+                f"  <li>Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']})</li>"
+            )
+
+    html_lines.extend([
+        "</ul>",
+        "<p>Por favor, planeje o uso da sua conta adequadamente.</p>",
+        "<p>Atenciosamente,<br>Script de Alerta de Resets</p>",
+        "</body>",
+        "</html>"
+    ])
+    html_body = "\n".join(html_lines)
+
+    return subject, body, html_body
+
+
+def build_telegram_notification(all_resets):
+    expiring_count = sum(1 for r in all_resets if r["is_expiring"])
+    lines = [
+        "<b>ChatGPT Reset</b>",
+        f"<b>{expiring_count} reset(s) prestes a expirar</b>",
+        "",
+        "Resets ativos:",
+        "",
+    ]
+
+    for index, r in enumerate(all_resets, start=1):
+        expiry_date = html.escape(r["expiry_date"])
+        time_left = html.escape(r["time_left_str"])
+        if r["is_expiring"]:
+            lines.extend([
+                f"<b>{index}. Expira em {expiry_date}</b>",
+                f"Tempo restante: <b>{time_left}</b>",
+                "<b>PRESTES A EXPIRAR</b>",
+                "",
+            ])
+        else:
+            lines.extend([
+                f"{index}. Expira em {expiry_date}",
+                f"Tempo restante: {time_left}",
+                "",
+            ])
+
+    return "\n".join(lines)
+
+
+def send_email(subject, body, html_body):
+    msg = MIMEMultipart('alternative')
+    msg['From'] = os.environ['EMAIL_FROM']
+    msg['To'] = os.environ['EMAIL_TO']
+    msg['Subject'] = subject
+
+    part1 = MIMEText(body, 'plain', 'utf-8')
+    part2 = MIMEText(html_body, 'html', 'utf-8')
+    msg.attach(part1)
+    msg.attach(part2)
+
+    host = os.environ['SMTP_HOST']
+    port = int(os.environ['SMTP_PORT'])
+    user = os.environ['SMTP_USER']
+    password = os.environ['SMTP_PASSWORD']
+
+    if port == 465:
+        server = smtplib.SMTP_SSL(host, port, timeout=30)
+    else:
+        server = smtplib.SMTP(host, port, timeout=30)
+        server.starttls()
+
+    server.login(user, password)
+    server.send_message(msg)
+    server.quit()
+
+
+def send_telegram(body):
+    token = os.environ['TELEGRAM_BOT_TOKEN']
+    chat_id = os.environ['TELEGRAM_CHAT_ID']
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = urllib.parse.urlencode({
+        "chat_id": chat_id,
+        "text": body,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": "true",
+    }).encode()
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    request = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    response = json.loads(urllib.request.urlopen(request, timeout=30).read().decode())
+    if not response.get("ok"):
+        raise RuntimeError(response)
+
+
 def main():
     if not load_env():
         print("Aviso: Nenhum arquivo .env encontrado. Usando variáveis de ambiente do sistema.")
 
-    required_vars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'EMAIL_FROM', 'EMAIL_TO']
+    notify_channel = configured_notify_channel()
+    required_vars = required_config_vars(notify_channel)
     missing = [var for var in required_vars if not os.environ.get(var)]
     if missing:
         print(f"Erro: Faltam as seguintes variáveis de configuração no .env ou ambiente: {', '.join(missing)}")
@@ -185,88 +331,17 @@ def main():
         print(f"Nenhum reset expirando em menos de {DAYS_THRESHOLD} dias.")
         return
 
-    # Build and send email
-    print(f"Encontrado(s) {sum(1 for r in all_resets if r['is_expiring'])} reset(s) prestes a expirar. Enviando e-mail...")
-    
-    subject = "[ChatGPT Reset] Alerta de Expiração de Limite de Uso"
-    
-    # Plain text version
-    body_lines = [
-        "Este é um alerta automático informando sobre os seus créditos de uso do ChatGPT.",
-        "Abaixo estão todos os seus resets ativos:",
-        ""
-    ]
-    for r in all_resets:
-        if r["is_expiring"]:
-            body_lines.append(f"- **Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']}) [PRESTES A EXPIRAR]**")
-        else:
-            body_lines.append(f"- Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']})")
-            
-    body_lines.extend([
-        "",
-        "Por favor, planeje o uso da sua conta adequadamente.",
-        "",
-        "Atenciosamente,",
-        "Script de Alerta de Resets"
-    ])
-    body = "\n".join(body_lines)
-
-    # HTML version
-    html_lines = [
-        "<html>",
-        "<body>",
-        "<p>Olá,</p>",
-        "<p>Este é um alerta automático informando sobre os seus créditos de uso do ChatGPT.</p>",
-        "<p>Abaixo estão todos os seus resets ativos:</p>",
-        "<ul>"
-    ]
-    for r in all_resets:
-        if r["is_expiring"]:
-            html_lines.append(
-                f"  <li><strong><span style=\"color: red;\">Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']}) [PRESTES A EXPIRAR]</span></strong></li>"
-            )
-        else:
-            html_lines.append(
-                f"  <li>Expira em: {r['expiry_date']} (Tempo restante: {r['time_left_str']})</li>"
-            )
-            
-    html_lines.extend([
-        "</ul>",
-        "<p>Por favor, planeje o uso da sua conta adequadamente.</p>",
-        "<p>Atenciosamente,<br>Script de Alerta de Resets</p>",
-        "</body>",
-        "</html>"
-    ])
-    html_body = "\n".join(html_lines)
+    print(f"Encontrado(s) {sum(1 for r in all_resets if r['is_expiring'])} reset(s) prestes a expirar. Enviando via {notify_channel}...")
+    subject, body, html_body = build_notification(all_resets)
 
     try:
-        msg = MIMEMultipart('alternative')
-        msg['From'] = os.environ['EMAIL_FROM']
-        msg['To'] = os.environ['EMAIL_TO']
-        msg['Subject'] = subject
-        
-        part1 = MIMEText(body, 'plain', 'utf-8')
-        part2 = MIMEText(html_body, 'html', 'utf-8')
-        msg.attach(part1)
-        msg.attach(part2)
-
-        host = os.environ['SMTP_HOST']
-        port = int(os.environ['SMTP_PORT'])
-        user = os.environ['SMTP_USER']
-        password = os.environ['SMTP_PASSWORD']
-
-        if port == 465:
-            server = smtplib.SMTP_SSL(host, port, timeout=30)
+        if notify_channel == "email":
+            send_email(subject, body, html_body)
         else:
-            server = smtplib.SMTP(host, port, timeout=30)
-            server.starttls()
-
-        server.login(user, password)
-        server.send_message(msg)
-        server.quit()
-        print("E-mail enviado com sucesso!")
+            send_telegram(build_telegram_notification(all_resets))
+        print("Notificação enviada com sucesso!")
     except Exception as e:
-        print(f"Erro ao enviar o e-mail: {e}", file=sys.stderr)
+        print(f"Erro ao enviar a notificação: {e}", file=sys.stderr)
         sys.exit(1)
 
 
