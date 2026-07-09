@@ -15,10 +15,10 @@ Default mode is commit and push. Merge only when the user explicitly asks for me
 
 Do not skip delegation fallback gates.
 
-- If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, run exactly one implementation fallback subagent with model `GPT 5.5 (Light)`, task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
+- If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, run exactly one implementation fallback subagent with model `GPT-5.6 Terra (medium)`, task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
 - Treat the implementation fallback subagent as the implementation path. Integrate and inspect its work before verification.
 - If no usable implementation handoff exists after the Antigravity attempt and fallback subagent, stop and report the implementation as blocked. Do not silently switch to local implementation.
-- If Opus review and the Gemini Antigravity review fallback both fail to produce usable review evidence, run exactly one read-only review subagent with model `GPT 5.5 (High)` before treating independent review as unavailable.
+- If Opus review and the Gemini Antigravity review fallback both fail to produce usable review evidence, run exactly one read-only review subagent with model `GPT-5.6 Sol (medium)` before treating independent review as unavailable.
 
 ## Preflight
 
@@ -39,7 +39,7 @@ Delegate implementation to `$delegate-antigravity` instead of editing directly.
 1. Create a precise implementation handoff for `$delegate-antigravity` with the source of truth, workspace path, branch/worktree state, constraints, expected files or areas, and required verification.
 2. Tell `$delegate-antigravity` the implementation requires edits and may need terminal, internet, or tool use in the source-controlled workspace.
 3. Tell `$delegate-antigravity` to use model `Gemini 3.5 Flash (Medium)` for implementation unless the user requests another model. Because the implementer is lower-capability than the orchestrator, make the handoff unusually explicit: include concrete acceptance criteria, relevant files or search targets, invariants, edge cases, examples, commands to run, and known non-goals.
-4. If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, do not retry Antigravity and do not implement locally. Run one implementation fallback subagent with model `GPT 5.5 (Light)` using task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
+4. If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, do not retry Antigravity and do not implement locally. Run one implementation fallback subagent with model `GPT-5.6 Terra (medium)` using task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
 5. Require the implementer to make the smallest change that satisfies the PRD/request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
 6. Read the usable implementer output handoff and inspect the resulting diff before continuing. If both implementation attempts produce missing, blocked, or diff-inconsistent handoffs, stop and report blocked instead of taking over implementation locally.
 7. Treat the delegated implementer as the implementer only; Codex remains responsible for final verification, QA, corrections, review delegation, tracker updates, commit, push, and final report.
@@ -75,7 +75,7 @@ After Codex QA is clean, obtain independent review before commit/push.
 4. Accept the review only when the handoff is non-empty and clearly reports `clean`, `findings`, or `blocked`.
 5. If the Opus run fails because of quota, model availability, timeout, empty output, malformed handoff, or another runtime error, do not retry Opus. If the transcript contains usable review findings despite a bad handoff, use the transcript as review evidence and note the malformed handoff.
 6. When Opus produces no usable review evidence, run one fallback read-only Antigravity review with model `Gemini 3.1 Pro (High)` and a stricter checklist-style review prompt.
-7. If fallback review is also empty, invalid, or blocked, run one read-only review subagent with `GPT 5.5 (High)` using task-local context, and record that independent Antigravity review was unavailable.
+7. If fallback review is also empty, invalid, or blocked, run one read-only review subagent with `GPT-5.6 Sol (medium)` using task-local context, and record that independent Antigravity review was unavailable.
 8. For low- or normal-risk changes, Codex may continue after passing verification, orchestrator QA, and independent review. For high-risk changes, skip commit/push if no independent review succeeded unless the user explicitly accepts that risk.
 
 Address valid review findings yourself. Record false positives or out-of-scope findings for the final report.
