@@ -1,17 +1,24 @@
 # Personal Skills
 
-Repository for personal agent skills.
+Repository for personal Codex skills and custom agents.
 
 ## Available Skills
 
-- `gen-tokens`: generates Roll20-ready 3x3 NPC portrait grids and extracts them into individual hex-safe PNG tokens.
+- `delegate-antigravity`: delegates implementation, inspection, review, and debugging through Antigravity CLI handoffs.
+- `gen-tokens`: generates Roll20-ready NPC portrait grids and extracts individual Roll20 tokens.
+- `ship-feature`: ships a scoped feature through implementation, QA, review, commit, and push.
+- `to-goal-handoff`: prepares a persistent goal handoff from a PRD and ordered issues.
+- `to-issues-agentic`: turns a plan or PRD into agent-ready implementation issues.
+
+Custom agents are discovered automatically from `agents/**/*.toml` by the profile installer.
 
 ## Requirements
 
-- Node.js with `npx` available.
+- PowerShell 5.1 or newer.
 - Git, if installing from a cloned repository.
+- Node.js with `npx`, only when using the optional Skills CLI workflow.
 
-## Install All Skills From This Repository
+## Install or Update the Complete Profile
 
 Clone the repository and enter its root directory:
 
@@ -20,7 +27,36 @@ git clone https://github.com/raphaelmesquita/personal-skills.git
 cd personal-skills
 ```
 
-Install all skills globally under `~/.agents` for Codex:
+Install every discovered skill and custom agent:
+
+```powershell
+.\install-profile.ps1
+```
+
+The installer recursively discovers:
+
+- every `SKILL.md` below `skills/`, using its frontmatter `name` as the installed directory;
+- every custom-agent TOML below `agents/`, using its filename in the installed profile.
+
+It installs skills into `~/.agents/skills/`, agents into `$CODEX_HOME/agents/` (or `~/.codex/agents/`), and records owned destinations in `~/.agents/personal-skills-install.json`. A later run updates current entries and safely removes only previously managed entries that no longer exist in this repository.
+
+Preview an installation without changing the profile:
+
+```powershell
+.\install-profile.ps1 -DryRun
+```
+
+Keep previously managed entries that were removed from the repository:
+
+```powershell
+.\install-profile.ps1 -KeepStale
+```
+
+Start a new Codex task after installation so newly installed skills and agents are discovered.
+
+## Optional Skills CLI Workflow
+
+The upstream Skills CLI installs skills but does not install this repository's custom agents. To install only the skills globally:
 
 ```powershell
 npx -y skills add . --global --agent codex --skill "*" -y --full-depth
@@ -32,7 +68,7 @@ List the skills detected in this repository:
 npx -y skills add . --list --full-depth
 ```
 
-Install skills from the repository root for the current project:
+Install only skills from the repository root for the current project:
 
 ```powershell
 npx -y skills add .
@@ -48,48 +84,23 @@ Note: `--all` targets every agent known to the CLI. Some agents may not support 
 
 ## Verify Installation
 
-List installed project skills:
+Inspect the installed profile:
 
 ```powershell
-npx -y skills list
+Get-ChildItem ~/.agents/skills
+Get-ChildItem $(if ($env:CODEX_HOME) { "$env:CODEX_HOME/agents" } else { "~/.codex/agents" })
+Get-Content ~/.agents/personal-skills-install.json
 ```
 
-List installed global skills:
+The Skills CLI can also list skills it knows about:
 
 ```powershell
 npx -y skills list --global
 ```
 
-## Update Installed Skills
-
-From any project using these skills:
-
-```powershell
-npx -y skills update -y
-```
-
-For global skills:
-
-```powershell
-npx -y skills update --global -y
-```
-
-## Remove Skills
-
-Remove interactively:
-
-```powershell
-npx -y skills remove
-```
-
-Remove a specific skill:
-
-```powershell
-npx -y skills remove gen-tokens -y
-```
-
 ## Notes
 
-- Run the install commands from the repository root so the CLI can discover skills under `skills/`.
-- Use `--full-depth` to ensure nested skill folders are detected.
+- Run `install-profile.ps1` from any location; it resolves sources relative to its own repository root.
+- Custom destinations are available through `-SkillsDestination`, `-AgentsDestination`, and `-ManifestPath`, which are useful for testing or isolated profiles.
+- Use `--full-depth` when using the optional Skills CLI so nested skill folders are detected.
 - Review skills before use; installed skills run with agent permissions.
