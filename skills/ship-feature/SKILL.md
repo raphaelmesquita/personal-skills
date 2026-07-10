@@ -1,13 +1,13 @@
 ---
 name: ship-feature
-description: "Ship a scoped feature end-to-end: delegate implementation, run Codex-owned QA, obtain independent review, address findings, commit/push, and optionally merge. Use for /ship-feature or requests to ship a feature from a PRD, issue, or request."
+description: "Ship a scoped feature end-to-end: delegate implementation, run Codex-owned QA, obtain independent review, address findings, commit/push, and optionally merge. Use for /ship-feature or requests to ship a feature from a spec or legacy PRD, ticket, or direct request."
 ---
 
 # Ship Feature
 
 ## Scope
 
-Use this skill for one scoped feature or PRD-backed change. Keep the slice narrow, preserve unrelated worktree changes, and follow repository instructions before this workflow.
+Use this skill for one scoped feature or spec-backed change. Existing PRDs are legacy specs and remain valid sources of truth. Keep the slice narrow, preserve unrelated worktree changes, and follow repository instructions before this workflow.
 
 Default mode is commit and push. Merge only when the user explicitly asks for merge mode, for example `/ship-feature --merge`.
 
@@ -33,7 +33,7 @@ Do not skip delegation fallback gates.
 
 ## Preflight
 
-1. Identify the source of truth: current user request, PRD, issue, or design doc.
+1. Identify the source of truth: current user request, spec, ticket, or design doc.
 2. Inspect repo instructions, current branch, `git status --short`, and relevant docs/code.
 3. State assumptions and the implementation/verification plan.
 4. If unrelated dirty files touch the target area, work with them carefully; ask only when they make the task unsafe or impossible.
@@ -51,7 +51,7 @@ Delegate implementation to `$delegate-antigravity` instead of editing directly.
 2. Tell `$delegate-antigravity` the implementation requires edits and may need terminal, internet, or tool use in the source-controlled workspace.
 3. Tell `$delegate-antigravity` to use model `Gemini 3.5 Flash (Medium)` for implementation unless the user requests another model. Because the implementer is lower-capability than the orchestrator, make the handoff unusually explicit: include concrete acceptance criteria, relevant files or search targets, invariants, edge cases, examples, commands to run, and known non-goals.
 4. If `$delegate-antigravity` implementation fails because of quota, model availability, timeout, empty output, missing handoff, malformed handoff, or another runtime error, do not retry Antigravity and do not implement locally. Run one `ship_feature_implementation_fallback` custom agent using task-local context, the same acceptance criteria, and explicit permission to edit the source-controlled workspace.
-5. Require the implementer to make the smallest change that satisfies the PRD/request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
+5. Require the implementer to make the smallest change that satisfies the spec or request, keep rule/business validation in the authoritative layer, preserve public contracts unless explicitly changed, update docs/memory when durable behavior or workflow changes, and run relevant local verification.
 6. Read the usable implementer output handoff and inspect the resulting diff before continuing. If both implementation attempts produce missing, blocked, or diff-inconsistent handoffs, stop and report blocked instead of taking over implementation locally.
 7. Treat the delegated implementer as the implementer only; Codex remains responsible for final verification, QA, corrections, review delegation, tracker updates, commit, push, and final report.
 
@@ -72,7 +72,7 @@ Do not continue to commit while required local verification is failing.
 
 After implementation and first verification, Codex must personally QA the behavior against the source of truth and user-visible acceptance criteria. Do not use a QA subagent for this gate.
 
-Build a short acceptance checklist from the PRD/request, then exercise the changed behavior directly through the most relevant surface: tests, CLI commands, API calls, browser flows, rendered artifacts, or file inspection. Include negative or edge cases when they are part of the requested behavior or likely regression surface.
+Build a short acceptance checklist from the spec or request, then exercise the changed behavior directly through the most relevant surface: tests, CLI commands, API calls, browser flows, rendered artifacts, or file inspection. Include negative or edge cases when they are part of the requested behavior or likely regression surface.
 
 Address valid QA findings yourself. Keep fixes scoped, preserve unrelated worktree changes, and rerun affected verification after fixes. Record any out-of-scope findings for the final report instead of expanding the slice silently.
 
@@ -93,7 +93,7 @@ Address valid review findings yourself. Record false positives or out-of-scope f
 
 ## Source Tracker Update
 
-Before committing, update the related issue, PRD, or tracker artifact when the implementation came from one. Mark delivered slices as implemented or complete, record important verification and review outcomes, and capture any new follow-up work as explicit remaining scope instead of leaving stale acceptance criteria.
+Before committing, update the related ticket, spec, or tracker artifact when the implementation came from one. Mark delivered slices as implemented or complete, record important verification and review outcomes, and capture any new follow-up work as explicit remaining scope instead of leaving stale acceptance criteria.
 
 Keep tracker updates factual and scoped to the delivered change. Do not rewrite unrelated backlog items or close future slices just because the current branch touched nearby code.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "To Tickets Agentic"
+  short_description: "Agent-executable ticket graphs"
+  default_prompt: "Use $to-tickets-agentic to turn this spec into tickets that autonomous agents can implement."

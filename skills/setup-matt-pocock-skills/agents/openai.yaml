@@ -1,0 +1,7 @@
+interface:
+  display_name: "Setup Matt Pocock Skills"
+  short_description: "Configure spec-and-ticket engineering skills"
+  default_prompt: "Use $setup-matt-pocock-skills."
+
+policy:
+  allow_implicit_invocation: false

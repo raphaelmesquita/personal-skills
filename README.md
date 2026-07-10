@@ -6,9 +6,10 @@ Repository for personal Codex skills and custom agents.
 
 - `delegate-antigravity`: delegates implementation, inspection, review, and debugging through Antigravity CLI handoffs.
 - `gen-tokens`: generates Roll20-ready NPC portrait grids and extracts individual Roll20 tokens.
+- `setup-matt-pocock-skills`: configures a repository for spec-and-ticket-first engineering workflows and migrates legacy PRD- and issue-first setups.
 - `ship-feature`: ships a scoped feature through implementation, QA, review, commit, and push.
-- `to-goal-handoff`: prepares a persistent goal handoff from a PRD and ordered issues.
-- `to-issues-agentic`: turns a plan or PRD into agent-ready implementation issues.
+- `to-goal-handoff`: prepares a persistent goal handoff from a spec and ordered tickets.
+- `to-tickets-agentic`: turns a plan or spec into an agent-executable graph of tracer-bullet tickets.
 
 Custom agents are discovered automatically from `agents/**/*.toml` by the profile installer.
 
