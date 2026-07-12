@@ -23,6 +23,16 @@ If the spec does not already have an agent-ready ticket set, stop and recommend 
 
 Complete this step only when the parent spec, ticket tracker path, dependency order, accepted decisions, chat-only constraints, and implementation constraints are known.
 
+### Publishing Authority Boundary
+
+Keep the handoff-generation turn separate from the later `/goal` execution loop.
+
+- The handoff-generation turn creates guidance and operational memory only. It does not claim tickets, implement code, create commits, push, open PRs, or merge.
+- That generation-time non-action does **not** restrict the later `/goal` loop. Do not infer that commits are forbidden merely because the handoff invocation did not explicitly request a commit.
+- When the loop executes each ticket with `$ship-feature`, preserve `$ship-feature`'s normal local per-ticket commit behavior unless the user or repository explicitly prohibits commits.
+- Treat commit, push, PR, and merge as distinct authorities. A local commit does not imply permission to push, open a PR, or merge.
+- Record an execution-time prohibition only when it comes from an explicit user instruction or repository rule. Cite that source in the handoff instead of inventing a prohibition from silence.
+
 ### 2. Build The Execution Map
 
 Extract the ticket graph in dependency order. Identify:
@@ -34,6 +44,8 @@ Extract the ticket graph in dependency order. Identify:
 - validation evidence expected by the spec or tickets;
 - required skills for implementation, review, browser QA, docs, or diagnosis;
 - branch, commit, push, PR, and documentation expectations.
+
+If no explicit execution-time publishing rule exists, state the default precisely: local per-ticket commits follow `$ship-feature`; push, PR, and merge follow the user's or repository's separately established authority. Never summarize silence as “no commit was requested” or use it to disable local commits.
 
 Do not reopen accepted architecture decisions. Record that they may be revisited only if implementation proves a concrete incompatibility.
 
@@ -53,6 +65,8 @@ The loop must say that each ticket is implemented with `$ship-feature`, in depen
 - operational memory.
 
 State explicitly that the handoff does not implement tickets.
+
+Phrase this as a boundary on the current handoff-generation turn, not as a restriction on the resulting `/goal`. The goal loop must retain the commit/publishing policy established under **Publishing Authority Boundary**.
 
 ### 4. Create Operational Memory
 
@@ -97,6 +111,8 @@ The handoff must include:
 - completion definition;
 - explicit note that tickets are not being implemented now.
 
+The explicit note must say that the handoff-generation turn performs no ticket or publishing actions. It must not say or imply that the later `/goal` execution cannot create local per-ticket commits unless an explicit source actually prohibits them.
+
 Follow generic handoff hygiene: do not duplicate content already captured in specs, tickets, ADRs, or plans; redact secrets; prefer paths/URLs over copied prose.
 
 ### 6. Validate
@@ -108,6 +124,8 @@ Before finishing, check:
 - the ticket count and ready/current statuses are coherent;
 - internal ticket links or blocker references resolve when they are local files;
 - no ticket implementation work was started;
+- generation-time non-action was not accidentally converted into an execution-time commit prohibition;
+- any restriction on commits, pushes, PRs, or merges cites an explicit user or repository source;
 - any repository docs or memory touched by the handoff pass their normal validation.
 
 Do not invent heavy validation. Use the repository's existing docs, tracker, and validation conventions.
