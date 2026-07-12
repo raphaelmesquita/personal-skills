@@ -39,6 +39,8 @@ The installer recursively discovers:
 - every `SKILL.md` below `skills/`, using its frontmatter `name` as the installed directory;
 - every custom-agent TOML below `agents/`, using its filename in the installed profile.
 
+The installer continues to support repository-local TOMLs in `agents/`. The `ship-feature` skill instead depends on the centralized `implementer` and `code-reviewer` agents, so this repository intentionally does not duplicate those configurations.
+
 It installs skills into `~/.agents/skills/`, agents into `$CODEX_HOME/agents/` (or `~/.codex/agents/`), and records owned destinations in `~/.agents/personal-skills-install.json`. A later run updates current entries and safely removes only previously managed entries that no longer exist in this repository.
 
 Preview an installation without changing the profile:
