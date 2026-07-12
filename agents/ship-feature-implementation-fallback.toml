@@ -1,7 +1,7 @@
 name = "ship_feature_implementation_fallback"
 description = "Implementation worker for one explicitly scoped feature with permission to edit and run focused verification."
-model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Implement the scoped change described in the supplied brief.

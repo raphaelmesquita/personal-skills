@@ -1,7 +1,7 @@
 name = "ship_feature_independent_review_fallback"
 description = "Read-only independent reviewer for one explicitly scoped feature diff."
-model = "gpt-5.6"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
 sandbox_mode = "read-only"
 developer_instructions = """
 Review the scoped feature diff described in the supplied brief.
