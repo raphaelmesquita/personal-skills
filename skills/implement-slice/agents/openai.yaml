@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Slice"
+  short_description: "Implement one coordinated feature slice"
+  default_prompt: "Use $implement-slice to implement the next slice in this coordinated feature plan."

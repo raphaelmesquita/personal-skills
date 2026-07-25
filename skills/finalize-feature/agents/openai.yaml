@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finalize Feature"
+  short_description: "Finalize integrated feature delivery"
+  default_prompt: "Use $finalize-feature to validate, review, and publish this fully implemented feature."

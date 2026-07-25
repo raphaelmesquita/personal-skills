@@ -1,128 +1,211 @@
 ---
 name: to-tickets-agentic
-description: Break a plan, spec, legacy PRD, handoff, or conversation into an agent-executable graph of tracer-bullet tickets, each sized for a fresh context and explicit about blocking edges, constraints, acceptance criteria, and validation. Use when AI agents must implement the tickets autonomously, including through $ship-feature or a long-running goal.
+description: "Compile a spec, plan, legacy PRD, handoff, or conversation into a coordinated feature execution package: an agent-sized implementation graph, shared acceptance matrix, downstream contracts, economical checks, and one terminal $finalize-feature node. Use when autonomous agents will implement a feature through a long-running /goal."
 ---
 
 # To Tickets Agentic
 
-Create the same ticket graph as `$to-tickets`, with a stricter contract for autonomous implementation. Every ticket must be safe for a fresh agent to pick from the **frontier** without recovering hidden context from the author.
+Compile one feature source into a durable execution package for a coordinated feature branch. The package is the interface between planning and the `/goal` loop: implementation nodes run with `$implement-slice`; one terminal node runs with `$finalize-feature`.
 
-The tracker and triage vocabulary should already be configured. Run `/setup-matt-pocock-skills` when they are missing.
+## 1. Gather The Source
 
-## Process
+Read the relevant conversation and every named source: spec, plan, handoff, issue body and comments, ADR, decision log, and tracker convention. Treat an existing PRD as a legacy spec.
 
-### 1. Gather the source of truth
+Identify:
 
-Read the relevant conversation and every named source: plan, spec, handoff, issue body and comments, ADR, decision log, and tracker convention. Treat an existing PRD as a legacy spec without requiring it to be renamed.
+- the parent source and accepted decisions;
+- exhaustive feature acceptance criteria;
+- non-goals, invariants, compatibility and data constraints;
+- feature-branch and publishing expectations;
+- tracker target and ready-state convention;
+- known validation surfaces.
 
-Identify the parent artifact, accepted decisions, non-goals, compatibility constraints, validation expectations, tracker target, and ready-for-agent status or label.
+Record absent information as an explicit constraint or unresolved decision. Complete this step only when no implementation node contains a product or architecture choice that an implementing agent would have to invent.
 
-Complete this step only when those inputs are known or their absence is explicitly recorded as a ticket constraint.
+## 2. Explore The Implementation Surface
 
-### 2. Explore enough of the codebase
+Inspect the smallest useful set of code and documentation. Use project domain language, respect ADRs, locate stable verification surfaces, and identify dependencies that determine implementation order.
 
-When the implementation is not already understood, inspect the smallest useful set of code and documentation. Use the project's domain language, respect relevant ADRs, find stable verification surfaces, and look for prefactoring that makes later changes easier.
+Complete exploration when the graph can use real project vocabulary, define meaningful downstream contracts, and avoid rediscovery of basic architecture in each fresh context.
 
-Complete this step only when ticket scopes can use the project's real vocabulary and avoid leaving architectural discovery to the implementing agent.
+## 3. Build The Execution Plan
 
-### 3. Draft tracer-bullet tickets
+Create `.scratch/<feature-slug>/execution-plan.md` as the shared manifest, including when tickets live in a remote tracker. Record:
 
-Make each ticket a narrow but complete vertical slice through every relevant layer. A completed ticket must be independently demoable or verifiable, committable while later tickets remain open, and small enough for one fresh agent context.
+- parent source, repository, base branch, immutable base revision, and intended feature branch;
+- canonical lifecycle `ready → in-progress → implemented → verified → complete`, plus `waiting` for unmet dependencies and `blocked` for actual blockers;
+- commit, push, PR, and merge authority as separate values;
+- architectural guardrails and shared constraints;
+- implementation graph and first frontier;
+- cheap deterministic checks available during implementation;
+- feature-wide verification surfaces;
+- acceptance matrix assigning each feature criterion one stable ID and mapping it to contributing nodes and final evidence;
+- the single terminal finalization node;
+- definition of complete.
 
-Create prefactoring, contract, compatibility-seam, instrumentation, or discovery tickets first only when they unlock later vertical slices. A discovery ticket must deliver a durable decision artifact. Pair every temporary compatibility path with the ticket that removes it.
+Local commits are the default for implementation nodes unless an explicit source prohibits them. `$finalize-feature` is the sole publication phase. The feature branch becomes merge-eligible only after the terminal node passes its pre-merge success gate, with merge as the final source-control action.
 
-Treat a wide mechanical refactor as an expand-contract sequence:
+For change-producing work, `commit: false` requires `push: false`, `pr: false`, and `merge: false`. Reject incompatible authority before publishing the graph.
 
-1. Expand by adding the new form beside the old.
-2. Migrate call sites in batches that can remain green independently.
-3. Contract by removing the old form after every migration ticket completes.
+Complete the plan only when every acceptance criterion is defined exactly once under a stable ID and the matrix has reciprocal mappings between each ID and every contributing node.
 
-When migration batches cannot remain green alone, use an integration branch and make them all block a final integrate-and-verify ticket.
+## 4. Draft Implementation Nodes
 
-For every ticket, declare only genuine blocking edges. The graph must be acyclic, ordered with blockers first, and expose a non-empty frontier unless external work blocks the entire plan.
+Prefer tracer-bullet slices, but optimize the graph for coordinated delivery rather than independent release. Each implementation node must:
 
-### 4. Enforce the agent contract
+- fit one fresh agent context;
+- produce one coherent, committable change;
+- define objective implementation criteria;
+- state the interface or behavior downstream nodes may assume;
+- name economical deterministic checks;
+- list the stable acceptance-criterion IDs they contribute to final QA;
+- leave product completion claims to the terminal node.
 
-Audit every draft ticket against all of these conditions:
+Split only when a fresh context, dependency fan-out, isolated rollback, or materially clearer downstream contract earns the extra handoff. Merge tightly coupled sequential work when no useful checkpoint exists between it.
 
-- **What to build** states one end-to-end outcome rather than a layer-by-layer task list.
-- **Context and constraints** link the source of truth and state accepted decisions, invariants, and compatibility requirements needed in a fresh context.
-- **Acceptance criteria** are objective, observable, and exhaustive for the slice.
-- **Validation** names the evidence that proves the behavior, using established repository commands or surfaces when known.
-- **Boundaries** make material non-goals and preserved contracts explicit.
-- **Blocked by** names every genuine prerequisite and no merely convenient predecessor.
-- The implementation fits one agent context, has a narrow blast radius, and leaves no unresolved product or architecture choice.
+Preparatory, contract, migration, instrumentation, or discovery nodes are valid when they unlock later work. A discovery node must produce a durable decision artifact.
 
-Split, merge, clarify, or block any draft that fails the audit. Mark a ticket ready for an agent only after every condition passes.
+For wide refactors, preserve compatibility across intermediate commits only when required for data safety, external consumers, branch usability, or downstream implementation. Do not create compatibility scaffolding solely to make an internal feature-branch commit independently releasable.
 
-Avoid implementation file paths and working code snippets because they age quickly. Stable source-artifact paths and validation commands are useful. A decision-rich prototype excerpt may be included when prose would lose precision; identify it as prototype-derived and trim it to the accepted decision.
+Declare only genuine implementation blockers. Keep the graph acyclic and expose a non-empty frontier unless external work blocks the feature.
 
-### 5. Quiz the user
+## 5. Define Checkpoint Candidates
 
-Present the proposed graph as a numbered list. For each ticket show:
+The default after an implementation node is to continue to the next node. Name a potential dependency checkpoint only when a specific downstream dependency may justify it.
 
-- **Title**
-- **Blocked by**
-- **What it delivers**
-- **Why it fits one agent context**, when the sizing is not self-evident
+For each candidate, record:
 
-Ask whether the granularity, blocking edges, and split or merge choices are correct. Iterate until the user approves. An explicit request to publish an already approved breakdown counts as approval.
+- the concrete uncertainty that could emerge during implementation;
+- which downstream work would be substantially reworked if the assumption is wrong;
+- one focused check capable of resolving it.
 
-List any unresolved product or architecture choice surfaced during drafting and obtain a decision before publication. Keep the affected ticket blocked when the user intentionally defers that choice.
+The runtime still skips the checkpoint unless implementation actually exposes that uncertainty and the focused check is clearly cheaper than the likely rework. General risk, importance, or ticket size is not a candidate.
 
-### 6. Publish in dependency order
+## 6. Add The Terminal Node
 
-Publish blockers first so downstream tickets can reference real identifiers.
+Create exactly one finalization node blocked by every implementation leaf. Set `Execution: $finalize-feature`. It owns:
 
-- **Local tracker:** create one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order. Put blocker numbers and titles in `Blocked by`.
-- **Real tracker:** create one issue per ticket and use native blocking or sub-issue relationships when available; otherwise reference blocking issue identifiers in the body.
+- the acceptance matrix;
+- full relevant verification;
+- integrated Codex QA;
+- independent aggregate review;
+- corrections and rechecks;
+- promotion from `implemented` to `verified` and `complete`;
+- authorized push, PR, and merge.
 
-Apply the configured `ready-for-agent` status or label unless the user chose another state. Preserve the parent spec or other source artifact unchanged.
+The terminal node may change implementation code only to address finalization findings. It never delegates a second implementation pass over already completed nodes.
 
-Use this template for local tickets:
+## 7. Audit And Confirm The Graph
+
+Audit every implementation node:
+
+- **What to implement** states one outcome, not a layer-by-layer activity list.
+- **Context and constraints** contain the durable facts needed in a fresh context.
+- **Implementation criteria** are objective and exhaustive for the node.
+- **Downstream contract** makes dependent assumptions explicit.
+- **Economical checks** avoid feature-wide QA.
+- **Final QA contribution** lists stable IDs whose matrix entries reciprocally name the node.
+- **Boundaries** preserve material non-goals and contracts.
+- **Blocked by** contains every genuine prerequisite and no convenient predecessor.
+
+Avoid volatile file predictions and working code snippets. Stable source paths, domain terms, and validation commands are useful.
+
+Present the plan and numbered graph to the user. For each node show title, execution skill, blockers, delivered outcome, downstream contract, and sizing rationale when needed. Show the terminal node and acceptance-matrix coverage. Resolve graph, granularity, and architecture decisions before publication.
+
+## 8. Publish
+
+Publish blockers first so downstream nodes can reference real identifiers.
+
+- **Local tracker:** create one file per node at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`.
+- **Remote tracker:** create one issue per node and use native blockers or textual identifiers. Keep the local execution plan as the shared manifest.
+
+Use the configured tracker value for ready nodes. Record dependency-bound nodes as `waiting` and actual failures as `blocked` in the closest native states; when the tracker lacks the canonical lifecycle, persist canonical state in the body, a comment, or operational memory.
+
+Use this template for implementation nodes:
 
 ```md
-# <NN> — <Ticket title>
+# <NN> — <Title>
 
-Status: <configured tracker value for ready-for-agent>
-Blocked by: <ticket numbers/titles, or "None — can start immediately">
+Status: <canonical state>
+Execution: $implement-slice
+Blocked by: <identifiers, or "None">
 
 ## Parent
+<Source reference>
 
-<Source artifact reference, when one exists>
+## Execution plan
+<Path>
 
-## What to build
-
-<One end-to-end outcome from the user's perspective>
+## What to implement
+<One coherent outcome>
 
 ## Context and constraints
+<Durable decisions, invariants, and compatibility requirements>
 
-<Accepted decisions, invariants, and compatibility requirements needed in a fresh context>
+## Implementation criteria
+- [ ] <Objective implementation result>
 
-## Acceptance criteria
+## Downstream contract
+- <What later nodes may assume>
 
-- [ ] <Observable criterion>
+## Economical checks
+- <Cheap deterministic evidence>
 
-## Validation
+## Potential dependency checkpoint
+- Default: skip
+- Trigger: <specific implementation-time uncertainty, or "None">
+- Focused check: <one check, or "None">
 
-- <Required evidence or established command>
+## Final QA contribution
+- <Acceptance-criterion ID>
 
 ## Boundaries
-
-- <Material non-goal or contract to preserve>
+- <Non-goal or preserved contract>
 ```
 
-For a real tracker, use the same sections without the local number in the title. Omit `Parent` only when no parent source exists; keep every other section, writing `None identified` where the section is intentionally empty.
+Use this template for the terminal node:
 
-### 7. Verify publication
+```md
+# <NN> — Finalize <feature>
+
+Status: waiting
+Execution: $finalize-feature
+Blocked by: <every implementation leaf>
+
+## Parent
+<Source reference>
+
+## Execution plan
+<Path>
+
+## What to finalize
+Validate, review, correct, and publish the integrated feature.
+
+## Acceptance matrix
+<Execution-plan section>
+
+## Feature-wide verification
+- <Required integrated evidence>
+
+## Publishing authority
+<Commit, push, PR, and merge policy>
+
+## Boundaries
+- Preserve unrelated work and defer follow-up scope explicitly.
+```
+
+## 9. Verify Publication
 
 Finish only when:
 
-- every approved ticket exists exactly once and its references resolve;
-- every ticket passes the agent contract and has the configured ready state;
-- native and textual blocking edges agree, and the graph is acyclic;
+- the execution plan and every approved node exist exactly once;
+- all references and blockers resolve and the graph is acyclic;
+- every implementation node passes the agent contract;
 - the frontier is obvious;
-- wide refactors have complete expand, migrate, and contract coverage;
-- the parent artifact remains unchanged.
+- exactly one terminal node depends on every implementation leaf;
+- every acceptance-criterion ID is defined once and maps reciprocally to implementation nodes and final evidence;
+- checkpoint candidates satisfy the downstream-rework rule;
+- no compatibility work exists only for independent release of an internal commit;
+- the parent source remains unchanged.
 
-Hand each frontier ticket independently to `$ship-feature` or the configured implementation flow. Clear context between tickets so the ticket itself remains the implementation contract.
+Report the execution-plan path, tracker location, graph frontier, terminal node, validation results, and any unresolved external blocker.

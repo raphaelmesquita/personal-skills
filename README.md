@@ -5,11 +5,13 @@ Repository for personal Codex skills and custom agents.
 ## Available Skills
 
 - `delegate-antigravity`: delegates implementation, inspection, review, and debugging through Antigravity CLI handoffs.
+- `finalize-feature`: runs integrated verification, QA, independent review, corrections, and authorized publication once a feature is fully implemented.
 - `gen-tokens`: generates Roll20-ready NPC portrait grids and extracts individual Roll20 tokens.
+- `implement-slice`: implements one coordinated feature slice with economical checks and a scoped local commit.
 - `setup-matt-pocock-skills`: configures a repository for spec-and-ticket-first engineering workflows and migrates legacy PRD- and issue-first setups.
-- `ship-feature`: ships a scoped feature through implementation, QA, review, commit, and push.
-- `to-goal-handoff`: prepares a persistent goal handoff from a spec and ordered tickets.
-- `to-tickets-agentic`: turns a plan or spec into an agent-executable graph of tracer-bullet tickets.
+- `ship-feature`: independently ships a scoped feature by composing `implement-slice` with `finalize-feature`.
+- `to-goal-handoff`: initializes a persistent goal from a coordinated feature execution package.
+- `to-tickets-agentic`: compiles a spec into an implementation graph, acceptance matrix, and terminal finalization node.
 
 Custom agents are discovered automatically from `agents/**/*.toml` by the profile installer.
 
@@ -39,7 +41,7 @@ The installer recursively discovers:
 - every `SKILL.md` below `skills/`, using its frontmatter `name` as the installed directory;
 - every custom-agent TOML below `agents/`, using its filename in the installed profile.
 
-The installer continues to support repository-local TOMLs in `agents/`. The `ship-feature` skill instead depends on the centralized `implementer` and `code-reviewer` agents, so this repository intentionally does not duplicate those configurations.
+The installer continues to support repository-local TOMLs in `agents/`. `implement-slice` and `finalize-feature` depend on the centralized `implementer` and `code-reviewer` agents; `ship-feature` uses them transitively. This repository intentionally does not duplicate those configurations.
 
 It installs skills into `~/.agents/skills/`, agents into `$CODEX_HOME/agents/` (or `~/.codex/agents/`), and records owned destinations in `~/.agents/personal-skills-install.json`. A later run updates current entries and safely removes only previously managed entries that no longer exist in this repository.
 

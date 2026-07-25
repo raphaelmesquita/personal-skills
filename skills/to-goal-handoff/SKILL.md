@@ -1,137 +1,130 @@
 ---
 name: to-goal-handoff
-description: Create a goal-ready handoff from a spec or legacy PRD and ordered tickets for a /goal loop that executes each ticket with $ship-feature and maintains operational memory.
+description: Adapt a $to-tickets-agentic execution package into a durable /goal handoff and compact operational memory. Use when a coordinated feature graph is ready to run through repeated $implement-slice iterations followed by one $finalize-feature gate.
 ---
 
 # To Goal Handoff
 
-Create a specialized handoff for a long-running `/goal` that will implement every ticket in a spec-backed ticket set.
+Initialize a long-running `/goal` from an existing execution package. Treat the package as authoritative planning output; adapt it without reconstructing the graph or reinterpreting the spec.
 
-This is not a generic summary handoff. It must produce an actionable execution guide plus persistent operational memory so a fresh agent can pick the first unblocked ticket, run `$ship-feature`, update trackers, and continue without rediscovery.
+This generation turn creates guidance and memory only. The resulting goal performs implementation and finalization later.
 
-## Process
+## 1. Load And Validate The Package
 
-### 1. Gather Sources
+Read current chat context for the latest objective, explicit constraints, destination paths, branch expectations, and publishing authority. Then read:
 
-Read the current chat context first. Extract the user's latest objective, explicit constraints, named skills, destination paths, branch/commit expectations, and any implementation-loop rules that may not yet be persisted.
+- `.scratch/<feature-slug>/execution-plan.md`;
+- its parent source;
+- every implementation and finalization node;
+- relevant ADRs or decision artifacts linked by the plan;
+- existing operational memory, when present.
 
-Then read the sources the user names: spec, ticket index, ticket directory, decision log, ideal-state document, problem statement, open questions, ADRs, existing handoffs, and existing operational memory. Treat an existing PRD as a legacy spec and preserve its path, title, and tracker identifier.
+If the execution plan or agent-ready graph is missing, stop and recommend `$to-tickets-agentic`.
 
-Use chat context as an auxiliary source, not a replacement for persisted artifacts. If chat context and files conflict, follow the latest explicit user instruction and record the divergence in the handoff or operational memory.
+Validate without redesigning:
 
-If the spec does not already have an agent-ready ticket set, stop and recommend `$to-tickets-agentic` before creating the `/goal` handoff.
+- the graph is acyclic, its initial frontier contains only `ready` implementation nodes, and dependency-bound nodes are `waiting`;
+- every implementation node names exactly `Execution: $implement-slice`;
+- exactly one terminal node names `Execution: $finalize-feature` and depends on every implementation leaf;
+- the acceptance matrix defines each feature criterion once under a unique stable ID and maps each ID reciprocally to contributing nodes and final evidence;
+- canonical lifecycle and tracker mappings distinguish dependency `waiting` from actual `blocked`;
+- base branch, immutable base revision, exact feature branch, and commit, push, PR, and merge authority are explicit;
+- change-producing work with `commit: false` also has `push: false`, `pr: false`, and `merge: false`;
+- chat-only constraints are recorded as a divergence when they change the package.
 
-Complete this step only when the parent spec, ticket tracker path, dependency order, accepted decisions, chat-only constraints, and implementation constraints are known.
+Reject legacy packages that assign `$ship-feature` or another runner to implementation nodes. Recommend regenerating or explicitly migrating them with `$to-tickets-agentic`, including economical checks, downstream contracts, stable acceptance-criterion IDs, and final-QA mappings.
 
-### Publishing Authority Boundary
+Complete this step only when the first implementation node and terminal finalization conditions are unambiguous.
 
-Keep the handoff-generation turn separate from the later `/goal` execution loop.
+## 2. Establish The Publishing Boundary
 
-- The handoff-generation turn creates guidance and operational memory only. It does not claim tickets, implement code, create commits, push, open PRs, or merge.
-- That generation-time non-action does **not** restrict the later `/goal` loop. Do not infer that commits are forbidden merely because the handoff invocation did not explicitly request a commit.
-- When the loop executes each ticket with `$ship-feature`, preserve `$ship-feature`'s normal local per-ticket commit behavior unless the user or repository explicitly prohibits commits.
-- Treat commit, push, PR, and merge as distinct authorities. A local commit does not imply permission to push, open a PR, or merge.
-- Record an execution-time prohibition only when it comes from an explicit user instruction or repository rule. Cite that source in the handoff instead of inventing a prohibition from silence.
+Keep the handoff-generation turn separate from goal execution:
 
-### 2. Build The Execution Map
+- generation creates the handoff and operational memory;
+- `$implement-slice` creates scoped local commits during execution;
+- `$finalize-feature` is the sole push, PR, and merge phase;
+- merge eligibility begins only after finalization succeeds;
+- explicit user or repository rules override default local commits or publication authority.
 
-Extract the ticket graph in dependency order. Identify:
+Treat commit, push, PR, and merge as separate values. Cite the source of every prohibition or authorization.
 
-- the first unblocked ticket;
-- all ticket status values currently in use;
-- blocker relationships;
-- required tracker updates per ticket;
-- validation evidence expected by the spec or tickets;
-- required skills for implementation, review, browser QA, docs, or diagnosis;
-- branch, commit, push, PR, and documentation expectations.
+## 3. Encode The Feature-Branch Bootstrap
 
-If no explicit execution-time publishing rule exists, state the default precisely: local per-ticket commits follow `$ship-feature`; push, PR, and merge follow the user's or repository's separately established authority. Never summarize silence as “no commit was requested” or use it to disable local commits.
+Write this bootstrap as the first phase of the durable `/goal` objective; do not execute branch operations during handoff generation:
 
-Do not reopen accepted architecture decisions. Record that they may be revisited only if implementation proves a concrete incompatibility.
+1. verify the recorded immutable base revision belongs to the recorded base branch;
+2. create the exact feature branch at that revision when it does not exist;
+3. otherwise switch to the existing feature branch and verify the base revision is its ancestor;
+4. block when HEAD is detached, another worktree owns the branch, or working-tree changes make the switch unsafe.
 
-### 3. Define The Goal Loop
+Require the later goal to complete bootstrap only when HEAD is attached to the exact planned feature branch at valid base ancestry.
 
-Write the `/goal` objective as an executable loop, not as a vague project description.
+## 4. Define The Goal Loop
 
-The loop must say that each ticket is implemented with `$ship-feature`, in dependency order, and that each iteration updates:
+Write the `/goal` objective as this executable loop:
 
-- the ticket `Status:`;
-- completed acceptance criteria;
-- validation evidence;
-- review evidence;
-- blockers or follow-ups;
-- implementation-time decisions;
-- commits or PR links;
-- operational memory.
+1. Select the first `ready` implementation node in dependency order.
+2. Run `$implement-slice` with the node, execution plan, branch state, and compact operational memory; it owns the transitions to `in-progress` and then `implemented` or `blocked`.
+3. When commit authority is enabled, require a scoped commit. When it is explicitly disabled, require a recorded no-commit rationale and scoped diff evidence. In both cases, verify that the node and memory contain implementation evidence, downstream assumptions, divergences, and one checkpoint result of `run|skipped`.
+4. Consume the recorded checkpoint result without executing another check.
+5. Recompute the frontier, promote every newly dependency-clear implementation node from `waiting` to `ready` in the tracker and operational memory, and select only `ready` nodes.
+6. Continue until every implementation node is `implemented`.
+7. Promote the terminal node from `waiting` to `ready`, then `in-progress`.
+8. Run the single `$finalize-feature` node over the aggregate diff and acceptance matrix.
+9. Require its complete structured result. Finish only on `delivery_status: complete` with `quality_status: clean` or policy-accepted `clean-with-waiver`; treat a missing or incoherent field as `blocked`. A failure before merge sets the terminal node to `blocked`; a non-source-controlled tracker failure after merge becomes a follow-up and leaves the successful terminal verdict unchanged.
 
-State explicitly that the handoff does not implement tickets.
+Feature-wide QA, broad test suites, browser acceptance walkthroughs, and independent review occur at finalization. Per-node checks remain economical and deterministic.
 
-Phrase this as a boundary on the current handoff-generation turn, not as a restriction on the resulting `/goal`. The goal loop must retain the commit/publishing policy established under **Publishing Authority Boundary**.
+## 5. Create Compact Operational Memory
 
-### 4. Create Operational Memory
+Create or update `ongoing-implementation.md` beside the execution plan unless the user gives another path. Keep it as a delta log and index, not a copy of sources.
 
-Create or update a persistent operational file beside the spec or tracker. Prefer `ongoing-implementation.md` unless the user gives a different path.
+Include:
 
-Include at minimum:
+- execution-plan, parent-source, tracker, repository, base-revision, and branch references;
+- current node, frontier, implemented nodes, and terminal-node state;
+- canonical state mappings;
+- downstream contracts and implementation-time assumptions still relevant;
+- useful economical commands and feature-wide finalization commands;
+- discovered files or modules;
+- checkpoint decisions and evidence;
+- blockers, risks, durable decisions, and plan-versus-code divergences;
+- local commits and publication state;
+- next recommended node.
 
-- current ticket;
-- tickets completed;
-- published ticket order;
-- operating loop;
-- ticket update protocol;
-- architectural guardrails;
-- useful validation commands;
-- discovered files/modules;
-- active risks;
-- blockers;
-- decisions taken during implementation;
-- validation evidence log;
-- commits and PRs;
-- plan-vs-code divergences;
-- next recommended step.
+Record final verification and independent-review evidence once at feature level after `$finalize-feature`, not once per implementation node.
 
-Reference source artifacts by path instead of duplicating specs, decisions, or ticket bodies.
+## 6. Create The Handoff
 
-### 5. Create The Handoff
+Save the handoff in the user's OS temporary directory unless another destination is requested. Reference the durable execution plan and operational memory instead of copying their content.
 
-Save the handoff document to the user's OS temporary directory unless the user explicitly asks for another destination. Also reference the persistent operational memory file from the handoff.
+Include:
 
-The handoff must include:
+- `/goal` objective and completion criterion;
+- repository, base revision, branch, and publishing authority;
+- execution-plan, source, tracker, and memory paths;
+- first `ready` implementation node;
+- the four-step feature-branch bootstrap before node selection;
+- the operating loop and canonical lifecycle;
+- architectural guardrails and current divergences;
+- checkpoint activation rule;
+- finalization-node contract;
+- explicit note that this generation turn implements, commits, pushes, and merges nothing.
 
-- focus and `/goal` objective;
-- primary source paths;
-- chat context used, or a note that no additional chat-only constraints were found;
-- suggested skills, including `$ship-feature` and `$codebase-documentation-architect`;
-- current state and first unblocked ticket;
-- operating loop;
-- architectural guardrails;
-- tracker update rules;
-- useful validation commands;
-- known relevant files/modules when discovered;
-- completion definition;
-- explicit note that tickets are not being implemented now.
+Suggest `$implement-slice`, `$finalize-feature`, and `$codebase-documentation-architect` when durable repository memory must change. `$ship-feature` remains available for independent one-feature delivery but is not an implementation-node runner in this coordinated loop.
 
-The explicit note must say that the handoff-generation turn performs no ticket or publishing actions. It must not say or imply that the later `/goal` execution cannot create local per-ticket commits unless an explicit source actually prohibits them.
+## 7. Validate And Report
 
-Follow generic handoff hygiene: do not duplicate content already captured in specs, tickets, ADRs, or plans; redact secrets; prefer paths/URLs over copied prose.
+Finish only when:
 
-### 6. Validate
+- the handoff and operational-memory files exist at the reported paths;
+- every referenced source and local blocker resolves;
+- ticket counts, frontier, lifecycle, and terminal-node dependencies agree;
+- the handoff defers integrated QA and independent review to the terminal node;
+- the handoff embeds the feature-branch bootstrap and generation executed no branch operation;
+- checkpoint wording uses the downstream-rework rule;
+- publication authority matches explicit user and repository sources;
+- no ticket implementation or publication action occurred during generation;
+- modified repository docs pass their normal validation.
 
-Before finishing, check:
-
-- the handoff file exists at the reported path;
-- the operational memory file exists at the reported path;
-- the ticket count and ready/current statuses are coherent;
-- internal ticket links or blocker references resolve when they are local files;
-- no ticket implementation work was started;
-- generation-time non-action was not accidentally converted into an execution-time commit prohibition;
-- any restriction on commits, pushes, PRs, or merges cites an explicit user or repository source;
-- any repository docs or memory touched by the handoff pass their normal validation.
-
-Do not invent heavy validation. Use the repository's existing docs, tracker, and validation conventions.
-
-### 7. Report
-
-Return the handoff path, operational memory path, what was updated, validation results, and whether any ticket set or source artifact was missing or inconsistent.
-
-Keep the report short. The durable details belong in the handoff and operational memory.
+Report the handoff path, operational-memory path, first node, terminal node, publishing policy, validation results, and any missing or inconsistent source.
