@@ -6,7 +6,7 @@ param(
 
     [string]$HandoffFile,
 
-    [string]$Model = "Gemini 3.6 Flash (Medium)",
+    [string]$Model = "Gemini 3.6 Flash (High)",
 
     [string]$PrintTimeout = "1h",
 
