@@ -26,7 +26,7 @@ Before delegation, set the canonical node state to `in-progress`. Persist it in 
 
 ## Implementation Delegation
 
-Delegate implementation to `$delegate-antigravity` with model `Gemini 3.6 Flash (Medium)` unless the user requests another model. Supply only task-local context:
+Delegate implementation to `$delegate-antigravity` with model `Gemini 3.6 Flash (High)` unless the user requests another model. Supply only task-local context:
 
 - source of truth and execution-plan paths;
 - workspace, branch, and current state;
